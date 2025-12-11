@@ -1,178 +1,109 @@
-# Chorus Data Engineering Interview
+-- Beginner Level (1-3)
 
-## About this Interview
+-- Retrieve all active patients
+-- Write a query to return all patients who are active.
 
-Welcome to Chorus Engineering's Interview project!
+SELECT distinct name FROM public."Patient"
+where active = true
 
-We're looking for engineers who are experienced, passionate, and obsessed with strong systems and high productivity.
+-- Find encounters for a specific patient
+-- Given a patient_id, retrieve all encounters for that patient, including the status and encounter date.
 
-To facilitate this, we are providing an interview project that tests your skills with Data Modelling and SQL querying.
+SELECT distinct patient_id, status, encounter_date 
+FROM public."Encounter" 
 
-The goal of this interview is to identify strengths through a take home project, followed by a 1-hour pairing session
+-- List all observations recorded for a patient
+-- Write a query to fetch all observations for a given patient_id, showing the observation type, value, unit, and recorded date.
 
-with the Data Engineering team.  
+SELECT distinct patient_id, type, value, unit, recorded_at
+FROM public."Observation" 
 
-## Installation
 
-Follow the directions for a seamless installation.
+-- Intermediate Level (4-7)
 
-[Install Tilt](https://docs.tilt.dev/install.html)
+-- Find the most recent encounter for each patient
+-- Retrieve each patient’s most recent encounter (based on encounter_date). Return the patient_id, encounter_date, and status.
 
-After installing `tilt`, you should be able to run `tilt up` which will stand up a database.
+SELECT patient_id, encounter_date, status
+FROM public."Encounter"
+where (patient_id, encounter_date) in (
+select patient_id, max(encounter_date) from public."Encounter"
+group by patient_id)
 
-### Connecting to the Database
-_Use whatever tool you'd like to connect to the database._
 
-This setup includes PgAdmin4 to streamline development.
+-- Find patients who have had encounters with more than one practitioner
+-- Write a query to return a list of patient IDs who have had encounters with more than one distinct practitioner.
 
-**PGAdmin4 Connection Details**
+SELECT patient_id
+FROM public."Encounter"
+group by patient_id
+having count(distinct practitioner_id) > 1
 
-Host: http://localhost:5050
+-- Find the top 3 most prescribed medications 
+-- Write a query to find the three most commonly prescribed medications from the MedicationRequest table, sorted by the number of prescriptions.
 
-Email
-```bash
-fake@gmail.com
-```
+select
+medication_name
+from public."MedicationRequest"
+group by medication_name
+order by count(*) desc
+limit 3
 
-Password
-```bash
-password
-```
+-- Get practitioners who have never prescribed any medication
+-- Write a query to find all practitioners who do not appear in the MedicationRequest table as a prescribing practitioner.
 
-**Postgres Connection Details**
+select
+distinct id
+from public."Practitioner" 
+where id not in (select distinct practitioner_id from public."MedicationRequest" )
 
-Host:
-```Bash
-localhost
-```
 
-Port:
-```bash
-5432
-```
+-- Advanced Level (8-10)
 
-Username
-```bash
-user
-```
+-- Find the average number of encounters per patient (are we including patients that do not exist in the encouter as 0?)
+-- Calculate the average number of encounters per patient, rounded to two decimal places.
 
-Password
-```bash
-password
-```
+with t1 as(
+select
+patient_id, count(*) ct
+from public."Encounter" 
+group by patient_id
+)
 
-Database Name
-```
-postgres
-```
+select
+round(avg(ct),2) avg_encounter
+from t1
 
-## Technical Skills Tested by this Interview
+-- Identify patients who have never had an encounter but have a medication request
+-- Write a query to find patients who have a record in the MedicationRequest table but no associated encounters in the Encounter table.
 
-Data Modelling
+select
+distinct p.id
+from public."Patient" p inner join public."MedicationRequest" mr on p.id = mr.patient_id
+where p.id not in (select distinct patient_id from public."Encounter")
 
-Writing Queries
 
-## Prompt
+-- Determine patient retention by cohort
+-- Write a query to count how many patients had their first encounter in each month (YYYY-MM format) and still had at least one encounter in the following six months.
 
+with t1 as(
+select
+date_trunc('month', min(encounter_date)) first_month,
+patient_id
+from public."Encounter"
+group by patient_id),
 
-### Data Modelling
-Lets create a data model for a set of requirements!
-
-Create a model that allows people to track Tasks over time.
-
-People can be assigned to do a Task.
-
-A task can reoccur at a cadence of daily, weekly, monthly.
-
-Each occurrence of a task can have statuses: Not Started, In Progress, Completed (but not the Task itself)
-
-#### Example
-
-Here's our team of people:
-
-- Ricardo
-- Shanaya
-- Daniel
-
-Say we have 3 tasks.
-
-Task 1 repeats monthly and ends after 12 occurrences.
-Task 2 only occurs once.
-Task 3 occurs daily, and ends after 30 occurences.
-
-Different people may be assigned to each following the rules of the data model above.
-
-### Writing Queries
-
-Obviously, ChatGPT exists.
-
-I don't care if you use it. I do care if you can't write good SQL. 
-
-You will be expected to explain all of your answers to the Data Engineering team.
-
-Use AI wisely.
-
-![img.png](img.png)
-
-Load the fhir model into your Database, and run the seed data command.
-
-**Beginner Level (1-3)**
-
-1. **Retrieve all active patients**
-
-Write a query to return all patients who are active.
-
-2. **Find encounters for a specific patient**
-
-Given a patient_id, retrieve all encounters for that patient, including the status and encounter date.
-
-3. **List all observations recorded for a patient**
-
-Write a query to fetch all observations for a given patient_id, showing the observation type, value, unit, and recorded date.
-
-**Intermediate Level (4-7)**
-
-4. **Find the most recent encounter for each patient**
-
-Retrieve each patient’s most recent encounter (based on encounter_date). Return the patient_id, encounter_date, and status.
-
-5. **Find patients who have had encounters with more than one practitioner**
-
-Write a query to return a list of patient IDs who have had encounters with more than one distinct practitioner.
-
-6. **Find the top 3 most prescribed medications**
-
-Write a query to find the three most commonly prescribed medications from the MedicationRequest table, sorted by the number of prescriptions.
-
-7. **Get practitioners who have never prescribed any medication**
-
-Write a query to find all practitioners who do not appear in the MedicationRequest table as a prescribing practitioner.
-
-**Advanced Level (8-10)**
-
-8. **Find the average number of encounters per patient**
-
-Calculate the average number of encounters per patient, rounded to two decimal places.
-
-9. **Identify patients who have never had an encounter but have a medication request**
-
-Write a query to find patients who have a record in the MedicationRequest table but no associated encounters in the Encounter table.
-	
-10.	**Determine patient retention by cohort**
-
-Write a query to count how many patients had their first encounter in each month (YYYY-MM format) and still had at least one encounter in the following six months.
-
-
-## Submission Criteria
-
-All of your work should be located in a Github Repo. Please ensure both the data model and SQL queries are within the submission.
-
-Ensure your repo is public, and submit the URL back to the hiring manager.
-
-## Next Steps
-
-The next step of your Interview will be to create a Data Pipeline case study.
-
-We want to know about a complex pipeline that you've made, what challenges you've faced, what trade-offs you made.
-
-Include an Architectural Diagram and prepare to walk the team through your pipeline, and discuss.
+t2 as(
+select
+e.patient_id, e.encounter_date, to_char(t1.first_month, 'YYYY-MM') first_month
+from public."Encounter" e inner join t1 on e.patient_id = t1.patient_id
+where e.encounter_date >= t1.first_month + '1 month' and 
+e.encounter_date < t1.first_month + '7 months'
+order by e.patient_id
+)
+
+select distinct
+first_month,
+count(distinct patient_id) ct
+from t2
+group by first_month
