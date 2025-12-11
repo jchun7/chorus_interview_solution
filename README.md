@@ -1,3 +1,5 @@
+SOLUTIONS
+
 -- Beginner Level (1-3)
 
 -- Retrieve all active patients
